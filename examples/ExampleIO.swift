@@ -2,6 +2,9 @@
 //  ExampleIO.swift
 //  Boardy+VIP Standard
 //
+//  Note: This file should be located in the IO/ target.
+//  Use 'public' modifiers for all components to allow inter-module access.
+//
 
 import Boardy
 import Foundation

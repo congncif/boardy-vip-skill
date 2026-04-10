@@ -44,6 +44,22 @@ To optimize compilation times and decouple dependencies, every feature module is
 
 ---
 
+## 3. Visibility & Scope (Minimal Export)
+
+Following the **Minimal Export** philosophy, distinguish between Microboards based on their usage scope:
+
+### 3.1. Public (Inter-module)
+- **Use When**: The Microboard is an entry point called from other modules.
+- **Location**: Define interfaces in the `IO/` target.
+- **Requirement**: Use the `public` access modifier for all definitions.
+
+### 3.2. Internal (Intra-module)
+- **Use When**: The Microboard is a private sub-component used only within its own module.
+- **Location**: Define interfaces alongside implementations in the `Plugins/` target (typically in `Sources/Microboards/.../`).
+- **Requirement**: Use the default `internal` access level. Avoid `public`.
+
+---
+
 ## 3. The 4 Pillars of Communication (IO)
 
 Consistent communication between boards is achieved through four standard models:
@@ -117,15 +133,62 @@ Organize logic within `Sources/Services/` using the following layers:
 ### 5.1. Domain Layer (`Services/Domain/`)
 - Pure Swift Models and Repository/Service **Protocols**.
 
-### 5.2. Application Layer (`Services/Application/`)
+### 6.2. Application Layer (`Services/Application/`)
 - Atomic **UseCases**. Represents discrete business functions (e.g., `FetchUserProfileUseCase`).
 
-### 5.3. Infrastructure Layer (`Services/Infra/`)
+### 6.3. Infrastructure Layer (`Services/Infra/`)
 - Concrete implementation of Domain protocols (Network, DB, SDKs).
+
+## 7. Global Integration System (Plugins)
+
+To achieve a "Plug-and-play" architecture, features must be registered through a unified plugin system.
+
+### 7.1. ModuleBuilderPlugin (Local Factory)
+- **Role**: Groups related boards and builders within a module.
+- **Implementation**:
+```swift
+struct FeatureModulePlugin: ModuleBuilderPlugin {
+    func build(with identifier: BoardID, sharedComponent: any SharedValueComponent, internalContinuousProducer: any ActivatableBoardProducer) -> any ActivatableBoard {
+        // Build the entry board for the module
+    }
+
+    func internalContinuousRegistrations(sharedComponent: any SharedValueComponent, producer: any ActivatableBoardProducer) -> [BoardRegistration] {
+        // Register internal microboards
+        [BoardRegistration(.modInternalFeature) { id in ... }]
+    }
+}
+```
+
+### 7.2. URLOpenerPlugin (Deep Link Handler)
+- **Role**: Maps URL paths to board activations, decoupling navigation from logic.
+- **Implementation**:
+```swift
+struct FeatureURLOpenerPlugin: URLOpenerPathMatchingPlugin {
+    var matchingPath: String { "/feature-path" }
+    func mainboard(_ mainboard: any FlowMotherboard, openURLWithParameters parameters: [String: String]) {
+        // Activate microboard using IOInterface
+        mainboard.ioFeature().activation.activate(with: input)
+    }
+}
+```
+
+### 7.3. LauncherPlugin (Public Export)
+- **Role**: Unified container that exports all module components to the App Core.
+- **Implementation**:
+```swift
+public struct FeatureLauncherPlugin: LauncherPlugin {
+    public func prepareForLaunching(withOptions options: MainOptions) -> ModuleComponent {
+        ModuleComponent(
+            modulePlugins: [FeatureModulePlugin()],
+            urlOpenerPlugins: [FeatureURLOpenerPlugin()]
+        )
+    }
+}
+```
 
 ---
 
-## 6. Testing Standards
+## 8. Testing Standards
 
 High-quality Boardy+VIP modules must follow these testing rules:
 - **Interactor Tests**: Verify that user actions trigger the correct Use Case calls and Presenter updates.
@@ -135,11 +198,16 @@ High-quality Boardy+VIP modules must follow these testing rules:
 
 ---
 
-## 7. Global Registration Workflow
+## 9. Implementation Workflow
 
-1. **Board Registration**: Use `ModuleBuilderPlugin` to map `BoardID` to factory closures locally.
-2. **Module Launcher**: Use `LauncherPlugin` to export builder plugins and handlers.
-3. **App Integration**: Install module launchers into the global `PluginLauncher` context.
+1. [ ] **Define Interface**: Create the `IO/` module with `BoardID`, `Input/Output`, and `Destination`.
+2. [ ] **Domain Modeling**: Define models and service interfaces in `Services/Domain`.
+3. [ ] **Implement UseCases**: Build the logic in `Services/Application`.
+4. [ ] **Infra Bridge**: Implement external services in `Services/Infra`.
+5. [ ] **VIP Wiring**: Implement the `Builder` and connect the components in the `Plugins` module.
+6. [ ] **Local Registration**: Register boards in `ModuleBuilderPlugin`.
+7. [ ] **Deep Linking**: Implement `URLOpenerPlugin` if needed.
+8. [ ] **Public Export**: Create `LauncherPlugin` and register it in the global `ServiceRegistry`.
 
 ---
-*Standard Version: 1.2.0*
+*Standard Version: 1.3.0*
