@@ -28,17 +28,35 @@ final class ExampleBoard: ModernContinuableBoard, GuaranteedBoard, GuaranteedOut
         watch(content: component.controller)
         motherboard.putIntoContext(viewController)
 
-        // Navigation logic (e.g., push or present)
+        // Connect buses to Interactor
+        refreshBus.connect(target: self) { target, _ in
+            target.interactor?.reloadData()
+        }
+
+        // Navigation logic
         rootViewController.pushViewController(viewController, animated: true)
     }
 
+    /// 3rd Pillar: Interaction (Command)
     func interact(guaranteedCommand: CommandType) {
         switch guaranteedCommand {
         case .refresh:
-            // Forward command to interactor
-            interactor?.reloadData()
+            // Transport command through Bus to active controller
+            refreshBus.transport()
+        case .updateData(let data):
+            // Forward directly or via Bus
+            print("Updating with data: \(data)")
         }
     }
+
+    private func registerFlows() {
+        // Correct Flow Syntax using ServiceMap (if observing another board)
+        // motherboard.serviceMap.modOther.ioOther.flow.addTarget(self) { target, output in ... }
+    }
+
+    // MARK: - Private properties
+
+    private let refreshBus = Bus<Void>()
 
     private var interactor: ExampleControllable? {
         lastAvailableWatchedContent()

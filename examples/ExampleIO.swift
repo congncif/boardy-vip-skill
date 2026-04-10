@@ -29,17 +29,20 @@ public enum ExampleOutput {
 
 public enum ExampleCommand {
     case refresh
+    case updateData(Any)
 }
 
-public enum ExampleAction {
+public enum ExampleAction: BoardFlowAction {
     case deepLink(URL)
 }
 
 // MARK: - Interface
 
+/// Typed destination for ServiceMap integration
 public typealias ExampleMainDestination = MainboardGenericDestination<ExampleInput, ExampleOutput, ExampleCommand, ExampleAction>
 
 extension MotherboardType where Self: FlowManageable {
+    /// Interface for Activation, Flow, and Interaction
     public func ioExample(_ identifier: BoardID = .pubExample) -> ExampleMainDestination {
         ExampleMainDestination(destinationID: identifier, mainboard: self)
     }
