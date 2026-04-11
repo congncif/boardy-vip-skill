@@ -29,7 +29,7 @@ final class ExampleComposableBoard: ModernContinuableBoard, GuaranteedBoard {
         // that controls the shared lifecycle of the composition.
         let composableMain = attachComposableMotherboard(to: viewController)
 
-        // 2. Concurrent Activation of children
+        // 2. Concurrent Activation of children via ServiceMap
         // Both TabA and TabB are alive and active simultaneously
         composableMain.serviceMap.modPlugins.ioTabA.activation.activate(with: .init())
         composableMain.serviceMap.modPlugins.ioTabB.activation.activate(with: .init())
@@ -47,11 +47,15 @@ final class ExampleComposableBoard: ModernContinuableBoard, GuaranteedBoard {
         composableMain.serviceMap.modPlugins.ioTabB.flow.addTarget(self) { target, output in
             switch output {
             case .requestParentRefresh:
-                target.interactor?.reloadData()
+                target.refreshBus.transport()
             }
         }
 
-        // 5. Connect Workflow bridge to Interactor for orchestration
+        // 5. Connect Workflow bridge directly to the component's Controller
+        refreshBus.connect(target: component.controller) { controller in
+            controller.reloadData()
+        }
+
         switchBus.connect(target: component.controller) { controller, destination in
             controller.switchTab(to: destination)
         }
@@ -62,8 +66,9 @@ final class ExampleComposableBoard: ModernContinuableBoard, GuaranteedBoard {
     // MARK: - Private properties
 
     private let switchBus = Bus<ExampleTabDestination>()
+    private let refreshBus = Bus<Void>()
 
-    private var interactor: ExampleDashboardControllable? {
+    private var controller: ExampleDashboardControllable? {
         lastAvailableWatchedContent()
     }
 }

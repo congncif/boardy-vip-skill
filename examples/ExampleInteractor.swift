@@ -19,6 +19,7 @@ final class ExampleInteractor {
     }
 }
 
+// Internal VIP interface
 extension ExampleInteractor: ExampleInteractable {
     func didBecomeActive() {
         Task { [weak self] in
@@ -41,6 +42,7 @@ extension ExampleInteractor: ExampleInteractable {
     }
 }
 
+// Boardy layer interface: Referred to as 'Controller' from the Board
 extension ExampleInteractor: ExampleControllable {
     func reloadData() {
         didBecomeActive()

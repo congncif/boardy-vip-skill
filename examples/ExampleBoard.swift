@@ -24,13 +24,20 @@ final class ExampleBoard: ModernContinuableBoard, GuaranteedBoard, GuaranteedOut
         let component = builder.build(withDelegate: self, input: input)
         let viewController = component.userInterface
         
-        // Register the controller (Interactor) as watched content for Boardy context
+        // Register the controller as watched content for Boardy context
         watch(content: component.controller)
         motherboard.putIntoContext(viewController)
 
-        // Connect buses to Interactor
-        refreshBus.connect(target: self) { target, _ in
-            target.interactor?.reloadData()
+        // Standard: Connect buses directly to the built component's controller/view
+        refreshBus.connect(target: component.controller) { target in
+            target.reloadData()
+        }
+
+        // Standard: Connectivity with specific instance validation (source === target)
+        unavailableBus.connect(target: component.controller) { target, source in
+            if source === target {
+                // Handle specific instance event
+            }
         }
 
         // Navigation logic
@@ -41,24 +48,24 @@ final class ExampleBoard: ModernContinuableBoard, GuaranteedBoard, GuaranteedOut
     func interact(guaranteedCommand: CommandType) {
         switch guaranteedCommand {
         case .refresh:
-            // Transport command through Bus to active controller
             refreshBus.transport()
-        case .updateData(let data):
-            // Forward directly or via Bus
-            print("Updating with data: \(data)")
+        case .updateData:
+            // Forward to internal components
+            break
         }
     }
 
     private func registerFlows() {
-        // Correct Flow Syntax using ServiceMap (if observing another board)
-        // motherboard.serviceMap.modOther.ioOther.flow.addTarget(self) { target, output in ... }
+        // Enforce ServiceMap for cross-module flows
+        // motherboard.serviceMap.modOtherPlugins.ioOther.flow.bind(to: locationPermissionBus)
     }
 
     // MARK: - Private properties
 
     private let refreshBus = Bus<Void>()
+    private let unavailableBus = Bus<ExampleControllable>()
 
-    private var interactor: ExampleControllable? {
+    private var controller: ExampleControllable? {
         lastAvailableWatchedContent()
     }
 }

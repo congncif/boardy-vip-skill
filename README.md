@@ -22,9 +22,8 @@ Once installed, your agent will automatically index the `SKILL.md` file and begi
 
 ## Versioning
 
-- **1.0.0**: Initial standard (RIBs-to-Boardy transition).
-- **1.1.0**: Added Interface Module (IO) pattern.
-- **1.2.0**: Added code boilerplates, universal IO patterns, and testing standards.
+- **1.5.0**: Refined naming conventions (Controller vs Interactor), direct Bus connection standards, and ServiceMap exclusively for URLOpeners.
+- **1.6.0**: International Standard (Professional English translation and generic composition terminology).
 
 ---
 *Maintained by the Boardy Community.*

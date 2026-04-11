@@ -18,10 +18,8 @@ struct ExampleBuilder: ExampleBuildable {
         let presenter = ExamplePresenter()
         presenter.view = viewController
         
-        // Domain/Application Layer
+        // Domain/Application/Business Layer
         let useCase = ExampleUseCaseInteractor()
-        
-        // Business Logic Layer
         let interactor = ExampleInteractor(
             presenter: presenter,
             input: input,
@@ -32,6 +30,7 @@ struct ExampleBuilder: ExampleBuildable {
         // Link View back to Interactor
         viewController.interactor = interactor
         
+        // In the interface, we refer to the interactor as the 'controller'
         return ExampleInterface(userInterface: viewController, controller: interactor)
     }
 }

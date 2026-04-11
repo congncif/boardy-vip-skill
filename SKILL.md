@@ -1,7 +1,7 @@
 ---
 name: Boardy+VIP Architecture Standard
 description: Standard instructions for building modular iOS applications using Boardy orchestration and the VIP (View-Interactor-Presenter) pattern following Clean Architecture and DDD principles.
-version: 1.4.0
+version: 1.6.0
 author: Antigravity AI
 ---
 
@@ -64,33 +64,33 @@ Following the **Minimal Export** philosophy, distinguish between Microboards bas
 
 Consistent communication between boards is achieved through the **ServiceMap** registry using these three pillars:
 
-### 3.1. Activation (In)
-- **Role**: Kích hoạt một Microboard mới.
+### 4.1. Activation (In)
+- **Role**: Activates a new Microboard.
 - **Pattern**: `mainboard.serviceMap.modB.ioB.activation.activate(with: input)`
 
-### 3.2. Flow (Out/Callback)
-- **Role**: Nhận kết quả hoặc tín hiệu từ một board (callback).
+### 4.2. Flow (Out/Callback)
+- **Role**: Receives results or signals from a board (callbacks).
 - **Pattern**: `mainboard.serviceMap.modB.ioB.flow.addTarget(self) { target, output in ... }`
 
-### 3.3. Interaction (Command)
-- **Role**: Gửi lệnh reactive đến một board đang hoạt động (alive).
+### 4.3. Interaction (Command)
+- **Role**: Sends reactive commands to an active board (alive).
 - **Pattern**: `mainboard.serviceMap.modB.ioB.interaction.send(command: .refresh)`
-- **Xử lý**: Board đích nhận tại `func interact(guaranteedCommand: CommandType)`.
+- **Handling**: The destination board receives the command in `func interact(guaranteedCommand: CommandType)`.
 
 ---
 
 ## 5. Event Bus Communication (The Bridge)
 
-Sử dụng `Bus<T>` để kết nối luồng sự kiện giữa **Board** (phối hợp) và **Interactor/Controller** (xử lý logic).
+Use `Bus<T>` to bridge event flows between the **Board** (coordination) and the **Controller** (managed object).
 
-- **Khởi tạo**: `private let resultBus = Bus<T>()`
-- **Kết nối (Connect)**: Thực hiện tại `activate` hoặc `init` để chuẩn bị điểm nhận dữ liệu.
+- **Initialization**: `private let resultBus = Bus<T>()`
+- **Connect**: Performed within the `activate` method immediately after the Builder initializes the component. Connect directly to the `component.controller` for instance guarantee.
   ```swift
-  resultBus.connect(target: self) { target, data in
-      target.interactor?.handleData(data)
+  resultBus.connect(target: component.controller) { target, data in
+      target.handleData(data)
   }
   ```
-- **Vận chuyển (Transport)**: Thực hiện tại các Flow/Interaction handler của Board.
+- **Transport**: Performed within the Board's Flow/Interaction handlers.
   ```swift
   target.resultBus.transport(input: data)
   ```
@@ -99,7 +99,7 @@ Sử dụng `Bus<T>` để kết nối luồng sự kiện giữa **Board** (ph�
 
 ## 6. VIP Component Boilerplates
 
-### 4.1. Interactor
+### 6.1. Interactor
 The brain of the unit. It orchestrates UseCases and manages state.
 
 ```swift
@@ -120,7 +120,7 @@ final class FeatureInteractor: AIInteractor {
 }
 ```
 
-### 4.2. Presenter
+### 6.2. Presenter
 The UI Logic layer. Transforms Domain models into View Models.
 
 ```swift
@@ -134,7 +134,7 @@ final class FeaturePresenter: FeaturePresentable {
 }
 ```
 
-### 4.3. View (Humble Object)
+### 6.3. View (Humble Object)
 Purely declarative. Forwards events to Interactor.
 
 ```swift
@@ -166,6 +166,8 @@ Organize logic within `Sources/Services/` using the following layers:
 ### 7.3. Infrastructure Layer (`Services/Infra/`)
 - Concrete implementation of Domain protocols (Network, DB, SDKs).
 
+---
+
 ## 8. Global Integration System (Plugins)
 
 To achieve a "Plug-and-play" architecture, features must be registered through a unified plugin system.
@@ -193,8 +195,9 @@ struct FeatureModulePlugin: ModuleBuilderPlugin {
 struct FeatureURLOpenerPlugin: URLOpenerPathMatchingPlugin {
     var matchingPath: String { "/feature-path" }
     func mainboard(_ mainboard: any FlowMotherboard, openURLWithParameters parameters: [String: String]) {
-        // Activate microboard using IOInterface
-        mainboard.ioFeature().activation.activate(with: input)
+        // Activate microboard using ServiceMap
+        mainboard.serviceMap.modFeaturePlugins.ioFeature
+            .activation.activate(with: input)
     }
 }
 ```
@@ -231,7 +234,7 @@ High-quality Boardy+VIP modules must follow these testing rules:
 2. [ ] **Domain Modeling**: Define models and service interfaces in `Services/Domain`.
 3. [ ] **Implement UseCases**: Build the logic in `Services/Application`.
 4. [ ] **Infra Bridge**: Implement external services in `Services/Infra`.
-5. [ ] **VIP Wiring**: Implement the `Builder` and connect the components in the `Plugins` module.
+5. [ ] **VIP Wiring**: Implement the `Builder` and connect the components (Interactor, Presenter, View).
 6. [ ] **Local Registration**: Register boards in `ModuleBuilderPlugin`.
 7. [ ] **Deep Linking**: Implement `URLOpenerPlugin` if needed.
 8. [ ] **Public Export**: Create `LauncherPlugin` and register it in the global `ServiceRegistry`.
@@ -251,11 +254,11 @@ For complex features requiring simultaneous management of multiple active child 
 Child boards in a composition often coexist simultaneously, making **Interaction (Command)** the primary communication pillar.
 
 1. **Parent to Child**: Parent sends instructions via `composableMain.serviceMap...interaction.send(command:)`.
-2. **Child to Parent**: Child emits results via `Flow` or `Action`. The Parent Board catches these and bridges them to the Workflow Owner/Interactor via `Bus`.
+2. **Child to Parent**: Child emits results via `Flow` or `Action`. The Parent Board catches these and bridges them to the Workflow Owner/Controller via `Bus`.
 3. **Inter-Child Coordination**: The Parent Board acts as a central coordinator, catching output from one child board and triggering a command in another.
 
 ### 11.3. Composition Orchestration
 The **Board** handles the business coordination of which child components should be active and how they interact. The **Workflow Owner** (e.g., a View or a Manager) handles the practical orchestration (e.g., UI assembly or resource management).
 
 ---
-*Standard Version: 1.4.0*
+*Standard Version: 1.6.0*
